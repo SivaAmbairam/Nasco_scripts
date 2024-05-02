@@ -91,13 +91,6 @@ if __name__ == '__main__':
                                                                     product_quantities=product_quantity,
                                                                     product_prices=product_price, product_urls=product_url)
                                         all_data.append(dictionary)
-                                        articles_df = pd.DataFrame(all_data)
-                                        articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
-                                        if os.path.isfile(f'{file_name}.csv'):
-                                            articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
-                                                               mode='a')
-                                        else:
-                                            articles_df.to_csv(f'{file_name}.csv', index=False)
                                         write_visited_log(product_url)
                         page_nav = page_soup.find('ul', class_='items pages-items').find('a', title='Next')
                 else:
@@ -138,15 +131,16 @@ if __name__ == '__main__':
                                     except:
                                         product_price = ''
                                     print('current datetime------>', datetime.now())
-
-                                    dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
+                                    dictionary_1 = get_dictionary(product_ids=product_id, product_names=product_name,
                                                                 product_quantities=product_quantity,
                                                                 product_prices=product_price, product_urls=product_url)
-                                    articles_df = pd.DataFrame([dictionary])
-                                    articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
-                                    if os.path.isfile(f'{file_name}.csv'):
-                                        articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
-                                                           mode='a')
-                                    else:
-                                        articles_df.to_csv(f'{file_name}.csv', index=False)
+                                    all_data.append(dictionary_1)
                                     write_visited_log(product_url)
+    articles_df = pd.DataFrame(all_data)
+    articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
+    if os.path.isfile(f'{file_name}.csv'):
+        articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
+                           mode='a')
+    else:
+        articles_df.to_csv(f'{file_name}.csv', index=False)
+                                    
