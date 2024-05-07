@@ -28,73 +28,28 @@ if __name__ == '__main__':
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     }
-    all_data = []
     soup = get_soup(url, headers)
     main_content = soup.find('nav', class_='navigation').find('ul')
-    for single_content in main_content.find_all('li', class_=re.compile('level0.*?')):
-        if 'Categories' in str(single_content) and 'Kits' in str(single_content):
-            inner_content = single_content.find_all('li', class_=re.compile('level2.*?'))
-            for main_link in inner_content:
-                main_url = main_link.a['href']
-                inner_request = get_soup(main_url, headers)
-                '''GET PAGINATION'''
-                if inner_request.find('ul', class_='items pages-items'):
-                    page_nav = main_url
-                    '''while loop using for page navigation'''
-                    while page_nav is not None:
-                        try:
-                            page_link = page_nav['href']
-                        except:
-                            page_link = page_nav
-                        print('main_page------->', page_link)
-                        page_soup = get_soup(page_link, headers)
-                        if page_soup is None:
-                            continue
-                        product_content = page_soup.find_all('div', class_='product details product-item-details')
-                        for single_product in product_content:
-                            '''PRODUCT URL'''
-                            product_url = f"{base_url}{single_product.find('a', class_='product-item-link')['href']}"
-                            print(product_url)
-                            if product_url in read_log_file():
-                                continue
-                            product_request = get_soup(product_url, headers)
-                            '''PRODUCT QUANTITY'''
-                            try:
-                                product_quantity = product_request.find('input', class_='input-text qty')['value']
-                            except Exception as e:
-                                print('product quantity:', e)
-                                product_quantity = '1'
-                            content = re.search('var dl4Objects.*?];', str(product_request)).group()
-                            content_replace = str(content).replace('var dl4Objects = ', '').rstrip(';')
-                            json_content = json.loads(content_replace)
-                            for single_json_content in json_content:
-                                if single_json_content['event'] == 'view_item':
-                                    inside_content = single_json_content['ecommerce']['items']
-                                    for inside_data in inside_content:
-                                        '''PRODUCT NAME'''
-                                        try:
-                                            product_name = inside_data['item_name']
-                                        except:
-                                            product_name = ''
-                                        '''PRODUCT ID'''
-                                        try:
-                                            product_id = inside_data['item_id']
-                                        except:
-                                            product_id = ''
-                                        '''PRODUCT PRICE'''
-                                        try:
-                                            product_price = f'$ {inside_data['price']}'
-                                        except:
-                                            product_price = ''
-                                        print('current datetime------>', datetime.now())
-                                        dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
-                                                                    product_quantities=product_quantity,
-                                                                    product_prices=product_price, product_urls=product_url)
-                                        all_data.append(dictionary)
-                                        write_visited_log(product_url)
-                        page_nav = page_soup.find('ul', class_='items pages-items').find('a', title='Next')
-                else:
-                    product_content = inner_request.find_all('div', class_='product details product-item-details')
+    for single_content in main_content.find_all('li', class_=re.compile('level0.*?'))[:2]:
+        for main_link in single_content.find_all('li', class_=re.compile('level2.*?')):
+            main_url = main_link.a['href']
+            if main_url in read_log_file():
+                continue
+            inner_request = get_soup(main_url, headers)
+            '''GET PAGINATION'''
+            if inner_request.find('ul', class_='items pages-items'):
+                page_nav = main_url
+                '''while loop using for page navigation'''
+                while page_nav is not None:
+                    try:
+                        page_link = page_nav['href']
+                    except:
+                        page_link = page_nav
+                    print('main_page------->', page_link)
+                    page_soup = get_soup(page_link, headers)
+                    if page_soup is None:
+                        continue
+                    product_content = page_soup.find_all('div', class_='product details product-item-details')
                     for single_product in product_content:
                         '''PRODUCT URL'''
                         product_url = f"{base_url}{single_product.find('a', class_='product-item-link')['href']}"
@@ -131,16 +86,66 @@ if __name__ == '__main__':
                                     except:
                                         product_price = ''
                                     print('current datetime------>', datetime.now())
-                                    dictionary_1 = get_dictionary(product_ids=product_id, product_names=product_name,
+                                    dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
                                                                 product_quantities=product_quantity,
                                                                 product_prices=product_price, product_urls=product_url)
-                                    all_data.append(dictionary_1)
+                                    articles_df = pd.DataFrame([dictionary])
+                                    articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
+                                    if os.path.isfile(f'{file_name}.csv'):
+                                        articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
+                                                           mode='a')
+                                    else:
+                                        articles_df.to_csv(f'{file_name}.csv', index=False)
                                     write_visited_log(product_url)
-    articles_df = pd.DataFrame(all_data)
-    articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
-    if os.path.isfile(f'{file_name}.csv'):
-        articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
-                           mode='a')
-    else:
-        articles_df.to_csv(f'{file_name}.csv', index=False)
-                                    
+                    page_nav = page_soup.find('ul', class_='items pages-items').find('a', title='Next')
+            else:
+                product_content = inner_request.find_all('div', class_='product details product-item-details')
+                for single_product in product_content:
+                    '''PRODUCT URL'''
+                    product_url = f"{base_url}{single_product.find('a', class_='product-item-link')['href']}"
+                    print(product_url)
+                    if product_url in read_log_file():
+                        continue
+                    product_request = get_soup(product_url, headers)
+                    '''PRODUCT QUANTITY'''
+                    try:
+                        product_quantity = product_request.find('input', class_='input-text qty')['value']
+                    except Exception as e:
+                        print('product quantity:', e)
+                        product_quantity = '1'
+                    content = re.search('var dl4Objects.*?];', str(product_request)).group()
+                    content_replace = str(content).replace('var dl4Objects = ', '').rstrip(';')
+                    json_content = json.loads(content_replace)
+                    for single_json_content in json_content:
+                        if single_json_content['event'] == 'view_item':
+                            inside_content = single_json_content['ecommerce']['items']
+                            for inside_data in inside_content:
+                                '''PRODUCT NAME'''
+                                try:
+                                    product_name = inside_data['item_name']
+                                except:
+                                    product_name = ''
+                                '''PRODUCT ID'''
+                                try:
+                                    product_id = inside_data['item_id']
+                                except:
+                                    product_id = ''
+                                '''PRODUCT PRICE'''
+                                try:
+                                    product_price = f'$ {inside_data['price']}'
+                                except:
+                                    product_price = ''
+                                print('current datetime------>', datetime.now())
+
+                                dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
+                                                            product_quantities=product_quantity,
+                                                            product_prices=product_price, product_urls=product_url)
+                                articles_df = pd.DataFrame([dictionary])
+                                articles_df.drop_duplicates(subset=['product_id', 'product_name'], keep='first', inplace=True)
+                                if os.path.isfile(f'{file_name}.csv'):
+                                    articles_df.to_csv(f'{file_name}.csv', index=False, header=False,
+                                                       mode='a')
+                                else:
+                                    articles_df.to_csv(f'{file_name}.csv', index=False)
+                                write_visited_log(product_url)
+            write_visited_log(main_url)
