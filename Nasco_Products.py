@@ -35,7 +35,10 @@ if __name__ == '__main__':
             main_url = main_link.a['href']
             if main_url in read_log_file():
                 continue
+            print(f'main_url------------->{main_url}')
             inner_request = get_soup(main_url, headers)
+            product_category = inner_request.find('ul', class_='items').find_all('li')[1].text.strip()
+            product_sub_category = inner_request.find('ul', class_='items').find_all('li')[2].text.strip()
             '''GET PAGINATION'''
             if inner_request.find('ul', class_='items pages-items'):
                 page_nav = main_url
@@ -86,7 +89,7 @@ if __name__ == '__main__':
                                     except:
                                         product_price = ''
                                     print('current datetime------>', datetime.now())
-                                    dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
+                                    dictionary = get_dictionary(product_category=product_category, product_sub_category=product_sub_category, product_ids=product_id, product_names=product_name,
                                                                 product_quantities=product_quantity,
                                                                 product_prices=product_price, product_urls=product_url)
                                     articles_df = pd.DataFrame([dictionary])
@@ -137,7 +140,7 @@ if __name__ == '__main__':
                                     product_price = ''
                                 print('current datetime------>', datetime.now())
 
-                                dictionary = get_dictionary(product_ids=product_id, product_names=product_name,
+                                dictionary = get_dictionary(product_category=product_category, product_sub_category=product_sub_category, product_ids=product_id, product_names=product_name,
                                                             product_quantities=product_quantity,
                                                             product_prices=product_price, product_urls=product_url)
                                 articles_df = pd.DataFrame([dictionary])
